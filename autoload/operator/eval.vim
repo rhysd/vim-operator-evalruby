@@ -1,6 +1,15 @@
-function! operator#eval#do(motion_wise)  "{{{2
+function! operator#eval#do(motion_wise)
 
     let save_g_reg = getreg('g')
+
+    let put_command = (s:deletion_moves_the_cursor_p(
+                      \   a:motion_wise,
+                      \   getpos("']")[1:2],
+                      \   len(getline("']")),
+                      \   [line('$'), len(getline('$'))]
+                      \ )
+                      \ ? 'p'
+                      \ : 'P')
 
     " get region to register g
     let visual_command = s:visual_command_from_wise_name(a:motion_wise)
@@ -10,8 +19,9 @@ function! operator#eval#do(motion_wise)  "{{{2
 
     let expr = 'puts lambda{'.getreg('g').'}.call'
     let result = system(g:operator_eval_ruby_command . ' -e ''' . expr.'''')
-    " XXX
-    call setline('.', result)
+    call setreg('g', result)
+
+    execute 'normal!' '"g'.put_command
 
     call setreg('g', save_g_reg)
 
@@ -19,7 +29,29 @@ function! operator#eval#do(motion_wise)  "{{{2
 endfunction
 
 
-function! s:is_empty_region(begin, end)  "{{{2
+function! s:deletion_moves_the_cursor_p(motion_wise,
+\                                       motion_end_pos,
+\                                       motion_end_last_col,
+\                                       buffer_end_pos)
+  let [buffer_end_line, buffer_end_col] = a:buffer_end_pos
+  let [motion_end_line, motion_end_col] = a:motion_end_pos
+
+  if a:motion_wise ==# 'char'
+    return ((a:motion_end_last_col == motion_end_col)
+    \       || (buffer_end_line == motion_end_line
+    \           && buffer_end_col <= motion_end_col))
+  elseif a:motion_wise ==# 'line'
+    return buffer_end_line == motion_end_line
+  elseif a:motion_wise ==# 'block'
+    return 0
+  else
+    echoerr 'E2: Invalid wise name:' string(a:wise_name)
+    return 0
+  endif
+endfunction
+
+
+function! s:is_empty_region(begin, end)
     " Whenever 'operatorfunc' is called, '[ is always placed before '] even if
     " a backward motion is given to g@.  But there is the only one exception.
     " If an empty region is given to g@, '[ and '] are set to the same line, but
@@ -28,7 +60,7 @@ function! s:is_empty_region(begin, end)  "{{{2
 endfunction
 
 
-function! s:visual_command_from_wise_name(wise_name)  "{{{2()
+function! s:visual_command_from_wise_name(wise_name)
     if a:wise_name ==# 'char'
         return 'v'
     elseif a:wise_name ==# 'line'
