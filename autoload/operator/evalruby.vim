@@ -37,17 +37,17 @@ function! operator#evalruby#do(motion_wise)
 endfunction
 
 
-function! s:deletion_moves_the_cursor_p(motion_wise,
-\                                       motion_end_pos,
-\                                       motion_end_last_col,
-\                                       buffer_end_pos)
+function! s:deletion_moves_the_cursor_p( motion_wise,
+                                       \ motion_end_pos,
+                                       \ motion_end_last_col,
+                                       \ buffer_end_pos )
   let [buffer_end_line, buffer_end_col] = a:buffer_end_pos
   let [motion_end_line, motion_end_col] = a:motion_end_pos
 
   if a:motion_wise ==# 'char'
-    return ((a:motion_end_last_col == motion_end_col)
-    \       || (buffer_end_line == motion_end_line
-    \           && buffer_end_col <= motion_end_col))
+    return ( (a:motion_end_last_col == motion_end_col)
+           \ || (buffer_end_line == motion_end_line
+           \     && buffer_end_col <= motion_end_col) )
   elseif a:motion_wise ==# 'line'
     return buffer_end_line == motion_end_line
   elseif a:motion_wise ==# 'block'
