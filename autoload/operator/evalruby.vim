@@ -1,5 +1,10 @@
 function! operator#evalruby#do(motion_wise)
 
+    if ! executable(g:operator_evalruby_command)
+        echoerr g:operator_evalruby_command.' is not found!'
+        return
+    endif
+
     let save_g_reg = getreg('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
@@ -18,14 +23,17 @@ function! operator#evalruby#do(motion_wise)
     end
 
     let expr = 'puts lambda{'.getreg('g').'}.call'
-    let result = system(g:operator_eval_ruby_command . ' -e ''' . expr.'''')
+    let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
     call setreg('g', result)
 
-    execute 'normal!' '"g'.put_command
+    if v:shell_error
+        echoerr "evalruby: error!!\n".result
+    else
+        execute 'normal!' '"g'.put_command
+    endif
 
     call setreg('g', save_g_reg)
 
-    return
 endfunction
 
 
