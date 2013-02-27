@@ -1,4 +1,4 @@
-function! operator#eval#do(motion_wise)
+function! operator#evalruby#do(motion_wise)
 
     let save_g_reg = getreg('g')
 
