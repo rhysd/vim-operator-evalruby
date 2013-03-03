@@ -8,34 +8,38 @@ function! operator#evalruby#do(motion_wise)
     let save_g_reg = getreg('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
-                      \   a:motion_wise,
-                      \   getpos("']")[1:2],
-                      \   len(getline("']")),
-                      \   [line('$'), len(getline('$'))]
-                      \ )
-                      \ ? 'p'
-                      \ : 'P')
+                    \   a:motion_wise,
+                    \   getpos("']")[1:2],
+                    \   len(getline("']")),
+                    \   [line('$'), len(getline('$'))]
+                    \ )
+                    \ ? 'p'
+                    \ : 'P')
 
-    " get region to register g
-    let visual_command = s:visual_command_from_wise_name(a:motion_wise)
-    if !s:is_empty_region(getpos("'["), getpos("']"))
+    try
+        " get region to register g
+        let visual_command = s:visual_command_from_wise_name(a:motion_wise)
+        if s:is_empty_region(getpos("'["), getpos("']"))
+            return
+        end
         execute 'normal!' '`['.visual_command.'`]"gd'
-    end
 
-    let expr = 'puts lambda{'.getreg('g').'}.call'
-    let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
+        let expr = 'puts lambda{'.getreg('g').'}.call'
+        let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
 
-    if v:shell_error
-        " restore and print error
-        execute 'normal!' '"g'.put_command
-        echoerr "evalruby: error!!\n".result
-    else
-        " success
-        call setreg('g', result)
-        execute 'normal!' '"g'.put_command
-    endif
+        if v:shell_error
+            " restore and print error
+            execute 'normal!' '"g'.put_command
+            echoerr "evalruby: error!!\n".result
+        else
+            " success
+            call setreg('g', result)
+            execute 'normal!' '"g'.put_command
+        endif
 
-    call setreg('g', save_g_reg)
+    finally
+        call setreg('g', save_g_reg)
+    endtry
 
 endfunction
 
