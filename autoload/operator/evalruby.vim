@@ -24,11 +24,14 @@ function! operator#evalruby#do(motion_wise)
 
     let expr = 'puts lambda{'.getreg('g').'}.call'
     let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
-    call setreg('g', result)
 
     if v:shell_error
+        " restore and print error
+        execute 'normal!' '"g'.put_command
         echoerr "evalruby: error!!\n".result
     else
+        " success
+        call setreg('g', result)
         execute 'normal!' '"g'.put_command
     endif
 
