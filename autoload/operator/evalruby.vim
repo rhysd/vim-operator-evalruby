@@ -60,7 +60,7 @@ function! s:deletion_moves_the_cursor_p(motion_wise,
   elseif a:motion_wise ==# 'block'
     return 0
   else
-    echoerr 'E2: Invalid wise name:' string(a:wise_name)
+    echoerr 'Invalid wise name:' string(a:wise_name)
     return 0
   endif
 endfunction
