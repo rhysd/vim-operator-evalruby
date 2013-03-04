@@ -5,7 +5,10 @@ function! operator#evalruby#do(motion_wise)
         return
     endif
 
+    let sel_save = &l:selection
+    let &l:selection = "inclusive"
     let save_g_reg = getreg('g')
+    let save_g_regtype = getregtype('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
                     \   a:motion_wise,
@@ -37,7 +40,8 @@ function! operator#evalruby#do(motion_wise)
             " execute 'normal!' '"g'.put_command
         endif
     finally
-        call setreg('g', save_g_reg)
+        call setreg('g', save_g_reg, save_g_regtype)
+        let &l:selection = sel_save
     endtry
 
 endfunction
