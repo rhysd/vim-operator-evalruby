@@ -22,21 +22,20 @@ function! operator#evalruby#do(motion_wise)
         if s:is_empty_region(getpos("'["), getpos("']"))
             return
         end
-        execute 'normal!' '`['.visual_command.'`]"gd'
+        execute 'normal!' '`['.visual_command.'`]"gy'
 
         let expr = 'puts lambda{'.getreg('g').'}.call'
         let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
 
         if v:shell_error
-            " restore and print error
-            execute 'normal!' '"g'.put_command
             echoerr "evalruby: error!!\n".result
         else
-            " success
             call setreg('g', result)
-            execute 'normal!' '"g'.put_command
+            " normal! gv"gp
+            execute 'normal!' 'gv"g'.put_command
+            echo put_command
+            " execute 'normal!' '"g'.put_command
         endif
-
     finally
         call setreg('g', save_g_reg)
     endtry
