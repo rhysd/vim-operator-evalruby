@@ -5,34 +5,44 @@ function! operator#evalruby#do(motion_wise)
         return
     endif
 
+    let sel_save = &l:selection
+    let &l:selection = "inclusive"
     let save_g_reg = getreg('g')
+    let save_g_regtype = getregtype('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
-                      \   a:motion_wise,
-                      \   getpos("']")[1:2],
-                      \   len(getline("']")),
-                      \   [line('$'), len(getline('$'))]
-                      \ )
-                      \ ? 'p'
-                      \ : 'P')
+                    \   a:motion_wise,
+                    \   getpos("']")[1:2],
+                    \   len(getline("']")),
+                    \   [line('$'), len(getline('$'))]
+                    \ )
+                    \ ? 'p'
+                    \ : 'P')
 
-    " get region to register g
-    let visual_command = s:visual_command_from_wise_name(a:motion_wise)
-    if !s:is_empty_region(getpos("'["), getpos("']"))
-        execute 'normal!' '`['.visual_command.'`]"gd'
-    end
+    try
+        " get region to register g
+        let visual_command = s:visual_command_from_wise_name(a:motion_wise)
+        if s:is_empty_region(getpos("'["), getpos("']"))
+            return
+        end
+        execute 'normal!' '`['.visual_command.'`]"gy'
 
-    let expr = 'puts lambda{'.getreg('g').'}.call'
-    let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
-    call setreg('g', result)
+        let expr = 'puts lambda{'.getreg('g').'}.call'
+        let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
 
-    if v:shell_error
-        echoerr "evalruby: error!!\n".result
-    else
-        execute 'normal!' '"g'.put_command
-    endif
-
-    call setreg('g', save_g_reg)
+        if v:shell_error
+            echoerr "evalruby: error!!\n".result
+        else
+            call setreg('g', result)
+            " normal! gv"gp
+            execute 'normal!' 'gv"g'.put_command
+            echo put_command
+            " execute 'normal!' '"g'.put_command
+        endif
+    finally
+        call setreg('g', save_g_reg, save_g_regtype)
+        let &l:selection = sel_save
+    endtry
 
 endfunction
 
@@ -53,7 +63,7 @@ function! s:deletion_moves_the_cursor_p( motion_wise,
   elseif a:motion_wise ==# 'block'
     return 0
   else
-    echoerr 'E2: Invalid wise name:' string(a:wise_name)
+    echoerr 'Invalid wise name:' string(a:wise_name)
     return 0
   endif
 endfunction
