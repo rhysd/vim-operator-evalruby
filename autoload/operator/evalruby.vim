@@ -19,7 +19,6 @@ function! operator#evalruby#do(motion_wise)
                     \ ? 'p' : 'P')
 
     try
-        " get region to register g
         let visual_command = s:visual_command_from_wise_name(a:motion_wise)
         if s:is_empty_region(getpos("'["), getpos("']"))
             return
@@ -29,10 +28,10 @@ function! operator#evalruby#do(motion_wise)
         let expr = 'puts lambda{'
                     \ . substitute(getreg('g'), '"', '\\"', 'g')
                     \ . '}.call'
-        " TODO use vimproc#system
-        let result = system(g:operator_evalruby_command . ' -e "' . expr . '"')
+        let result = s:system(g:operator_evalruby_command . ' -e "' . expr . '"')
+        let error = s:has_vimproc() ? vimproc#get_last_status() : v:shell_error
 
-        if v:shell_error
+        if error
             echoerr "evalruby: error!!\n".result
         else
             call setreg('g', result, 'v')
@@ -88,5 +87,26 @@ function! s:visual_command_from_wise_name(wise_name)
     else
         echoerr 'E1: Invalid wise name:' string(a:wise_name)
         return 'v'  " fallback
+    endif
+endfunction
+
+function! s:has_vimproc()
+  if !exists('s:exists_vimproc')
+    try
+      call vimproc#version()
+      let s:exists_vimproc = 1
+    catch
+      let s:exists_vimproc = 0
+    endtry
+  endif
+  return s:exists_vimproc
+endfunction
+
+function! s:system(...)
+    let cmd = join(a:000, ' ')
+    if s:has_vimproc()
+        return vimproc#system(cmd)
+    else
+        return system(cmd)
     endif
 endfunction
