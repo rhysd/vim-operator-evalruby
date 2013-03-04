@@ -16,8 +16,7 @@ function! operator#evalruby#do(motion_wise)
                     \   len(getline("']")),
                     \   [line('$'), len(getline('$'))]
                     \ )
-                    \ ? 'p'
-                    \ : 'P')
+                    \ ? 'p' : 'P')
 
     try
         " get region to register g
@@ -27,13 +26,16 @@ function! operator#evalruby#do(motion_wise)
         end
         execute 'normal!' '`['.visual_command.'`]"gy'
 
-        let expr = 'puts lambda{'.getreg('g').'}.call'
-        let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
+        let expr = 'puts lambda{'
+                    \ . substitute(getreg('g'), '"', '\\"', 'g')
+                    \ . '}.call'
+        " TODO use vimproc#system
+        let result = system(g:operator_evalruby_command . ' -e "' . expr . '"')
 
         if v:shell_error
             echoerr "evalruby: error!!\n".result
         else
-            call setreg('g', result, visual_command)
+            call setreg('g', result, 'v')
             " normal! gv"gp
             execute 'normal!' 'gv"g'.put_command
         endif
