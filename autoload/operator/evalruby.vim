@@ -7,7 +7,7 @@ function! operator#evalruby#do(motion_wise)
 
     let sel_save = &l:selection
     let &l:selection = "inclusive"
-    let save_g_reg = getreg('g')
+    let save_g_reg = getreg('g', 1)
     let save_g_regtype = getregtype('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
@@ -33,11 +33,9 @@ function! operator#evalruby#do(motion_wise)
         if v:shell_error
             echoerr "evalruby: error!!\n".result
         else
-            call setreg('g', result)
+            call setreg('g', result, visual_command)
             " normal! gv"gp
             execute 'normal!' 'gv"g'.put_command
-            echo put_command
-            " execute 'normal!' '"g'.put_command
         endif
     finally
         call setreg('g', save_g_reg, save_g_regtype)
