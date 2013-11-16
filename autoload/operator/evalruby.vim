@@ -7,7 +7,7 @@ function! operator#evalruby#do(motion_wise)
 
     let sel_save = &l:selection
     let &l:selection = "inclusive"
-    let save_g_reg = getreg('g')
+    let save_g_reg = getreg('g', 1)
     let save_g_regtype = getregtype('g')
 
     let put_command = (s:deletion_moves_the_cursor_p(
@@ -16,28 +16,27 @@ function! operator#evalruby#do(motion_wise)
                     \   len(getline("']")),
                     \   [line('$'), len(getline('$'))]
                     \ )
-                    \ ? 'p'
-                    \ : 'P')
+                    \ ? 'p' : 'P')
 
     try
-        " get region to register g
         let visual_command = s:visual_command_from_wise_name(a:motion_wise)
         if s:is_empty_region(getpos("'["), getpos("']"))
             return
         end
         execute 'normal!' '`['.visual_command.'`]"gy'
 
-        let expr = 'puts lambda{'.getreg('g').'}.call'
-        let result = system(g:operator_evalruby_command . ' -e ''' . expr.'''')
+        let expr = 'puts lambda{'
+                    \ . substitute(getreg('g'), '"', '\\"', 'g')
+                    \ . '}.call'
+        let result = s:system(g:operator_evalruby_command . ' -e "' . expr . '"')
+        let error = s:has_vimproc() ? vimproc#get_last_status() : v:shell_error
 
-        if v:shell_error
+        if error
             echoerr "evalruby: error!!\n".result
         else
-            call setreg('g', result)
+            call setreg('g', result, 'v')
             " normal! gv"gp
             execute 'normal!' 'gv"g'.put_command
-            echo put_command
-            " execute 'normal!' '"g'.put_command
         endif
     finally
         call setreg('g', save_g_reg, save_g_regtype)
@@ -47,17 +46,17 @@ function! operator#evalruby#do(motion_wise)
 endfunction
 
 
-function! s:deletion_moves_the_cursor_p(motion_wise,
-\                                       motion_end_pos,
-\                                       motion_end_last_col,
-\                                       buffer_end_pos)
+function! s:deletion_moves_the_cursor_p( motion_wise,
+                                       \ motion_end_pos,
+                                       \ motion_end_last_col,
+                                       \ buffer_end_pos )
   let [buffer_end_line, buffer_end_col] = a:buffer_end_pos
   let [motion_end_line, motion_end_col] = a:motion_end_pos
 
   if a:motion_wise ==# 'char'
-    return ((a:motion_end_last_col == motion_end_col)
-    \       || (buffer_end_line == motion_end_line
-    \           && buffer_end_col <= motion_end_col))
+    return ( (a:motion_end_last_col == motion_end_col)
+           \ || (buffer_end_line == motion_end_line
+           \     && buffer_end_col <= motion_end_col) )
   elseif a:motion_wise ==# 'line'
     return buffer_end_line == motion_end_line
   elseif a:motion_wise ==# 'block'
@@ -88,5 +87,26 @@ function! s:visual_command_from_wise_name(wise_name)
     else
         echoerr 'E1: Invalid wise name:' string(a:wise_name)
         return 'v'  " fallback
+    endif
+endfunction
+
+function! s:has_vimproc()
+  if !exists('s:exists_vimproc')
+    try
+      call vimproc#version()
+      let s:exists_vimproc = 1
+    catch
+      let s:exists_vimproc = 0
+    endtry
+  endif
+  return s:exists_vimproc
+endfunction
+
+function! s:system(...)
+    let cmd = join(a:000, ' ')
+    if s:has_vimproc()
+        return vimproc#system(cmd)
+    else
+        return system(cmd)
     endif
 endfunction
